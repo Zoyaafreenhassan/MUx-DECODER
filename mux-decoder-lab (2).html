@@ -1,0 +1,1141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MUX & Decoder Lab: Function Realization</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F3F5F9; --grid:#F3F5F9; --panel:#FFFFFF; --panel2:#F1F4F9; --ink:#131A2B; --muted:#5B6579; --line:#E3E8F0;
+  --hi:#E8A020; --hi-soft:#FCEBC8; --lo:#128F86; --lo-soft:#D5F0EC; --ok:#17784A; --ok-soft:#D5EFE1;
+  --bad:#B3261E; --bad-soft:#F9DAD7; --wire-off:#A3AEBD; --focus:#2F6FE0; --amber-ink:#131A2B;
+  --teal:#0A8570; --on-teal:#FFFFFF; --amber-text:#B45F06; --accent2:#2F6FE0; --shadow:0 12px 32px rgba(20,30,60,.08);
+  --tile1:#22CDAA; --tile2:#0E9C86; --atile1:#F5B547; --atile2:#DB7F14;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+  --bg:#0A0E1A; --grid:#0A0E1A; --panel:#121A2C; --panel2:#182238; --ink:#E8EEF7; --muted:#93A1BA; --line:#25314A;
+  --hi:#F2B33D; --hi-soft:#4A3A12; --lo:#4FC3B5; --lo-soft:#10403D; --ok:#4CC38A; --ok-soft:#143A2A;
+  --bad:#FF7A70; --bad-soft:#4A1F1C; --wire-off:#4B5B6C; --focus:#7FB0FF; --amber-ink:#13202D;
+  --teal:#2FD1B0; --on-teal:#06251F; --amber-text:#F5B14A; --accent2:#6EA0FF; --shadow:0 12px 32px rgba(0,0,0,.35);
+  --tile1:#22CDAA; --tile2:#0E9C86; --atile1:#F5B547; --atile2:#DB7F14;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0A0E1A; --grid:#0A0E1A; --panel:#121A2C; --panel2:#182238; --ink:#E8EEF7; --muted:#93A1BA; --line:#25314A;
+  --hi:#F2B33D; --hi-soft:#4A3A12; --lo:#4FC3B5; --lo-soft:#10403D; --ok:#4CC38A; --ok-soft:#143A2A;
+  --bad:#FF7A70; --bad-soft:#4A1F1C; --wire-off:#4B5B6C; --focus:#7FB0FF; --amber-ink:#13202D;
+  --teal:#2FD1B0; --on-teal:#06251F; --amber-text:#F5B14A; --accent2:#6EA0FF; --shadow:0 12px 32px rgba(0,0,0,.35);
+  --tile1:#22CDAA; --tile2:#0E9C86; --atile1:#F5B547; --atile2:#DB7F14;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:calc(64px + env(safe-area-inset-top,0px));-webkit-text-size-adjust:100%}
+body{margin:0;background-color:var(--bg);color:var(--ink);font:400 16px/1.55 'Inter',system-ui,-apple-system,'Segoe UI',sans-serif}
+[hidden]{display:none!important}
+.mono,table,input,select,.eq,svg text{font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace}
+h1,h2,h3{font-weight:700;line-height:1.15;margin:0}
+h1{font-size:clamp(1.9rem,4.6vw,3rem);letter-spacing:-.02em;max-width:18ch}
+h2{font-size:1.5rem;letter-spacing:-.01em}
+h3{font-size:1.05rem}
+p{margin:.4em 0}
+a{color:var(--lo)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--panel);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;flex-wrap:wrap}
+.brand{font-weight:700;letter-spacing:-.01em}
+.top nav{display:flex;gap:4px;flex-wrap:wrap}
+.top nav a{padding:6px 10px;border-radius:6px;text-decoration:none;color:var(--ink);font-size:.95rem}
+.top nav a:hover{background:var(--panel2)}
+
+.intro{padding:32px 0 18px}
+.intro p{max-width:60ch;color:var(--muted);font-size:1.05rem}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.panel>h3{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.step{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--panel);font:600 .85rem 'JetBrains Mono',monospace}
+.bench{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+.full{grid-column:1/-1}
+@media (max-width:820px){.bench{grid-template-columns:minmax(0,1fr)}}
+section{padding:22px 0}
+.sec-head{margin-bottom:14px}
+.sec-head p{color:var(--muted);max-width:64ch}
+
+.lbl{font-size:.9rem;color:var(--muted)}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{border:0;background:var(--panel);padding:7px 14px;min-height:38px;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel);font-weight:600}
+.field{display:flex;gap:8px;flex-wrap:wrap}
+input[type=text]{flex:1 1 200px;min-width:0;min-height:42px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel);font-size:.95rem}
+select{min-height:38px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+.btn{min-height:40px;padding:8px 14px;border:1px solid var(--ink);border-radius:6px;background:var(--ink);color:var(--panel);font-weight:600}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{background:var(--panel2)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--panel2);border-radius:999px;padding:5px 12px;font-size:.88rem;min-height:34px}
+.chip:hover{border-color:var(--ink)}
+.msg{margin-top:10px;padding:8px 10px;border-radius:6px;font-size:.92rem;border:1px solid var(--line);background:var(--panel2)}
+.msg.bad{background:var(--bad-soft);border-color:var(--bad);color:var(--ink)}
+.msg.ok{background:var(--ok-soft);border-color:var(--ok)}
+.msg.warn{background:var(--hi-soft);border-color:var(--hi)}
+.msg:empty{display:none}
+.eq{margin:10px 0 0;padding:8px 10px;border-radius:6px;background:var(--panel2);border:1px solid var(--line);font-size:.9rem;overflow-x:auto;white-space:nowrap}
+.scroll{overflow-x:auto}
+
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{padding:5px 8px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:600;color:var(--muted)}
+.tt td.b1{font-weight:600}
+.tt tr.prow td,.vt tr.prow td{background:var(--panel2);box-shadow:inset 0 0 0 0 transparent}
+.tt tr[data-act]{cursor:pointer}
+.it th:first-child{text-align:left}
+.it td.in{background:var(--hi);color:var(--amber-ink);font-weight:700;text-decoration:underline}
+.it tr.res td{font-weight:700;border-top:2px solid var(--ink)}
+.bitbtn,.fbtn{min-width:40px;min-height:36px;border-radius:6px;border:1px solid var(--line);font-weight:600;display:inline-flex;gap:6px;align-items:center;justify-content:center;padding:4px 10px}
+.bitbtn.b1,.fbtn.f1{background:var(--hi);border-color:var(--hi);color:var(--amber-ink)}
+.bitbtn.b0,.fbtn.f0{background:var(--lo-soft);border-color:var(--lo);color:var(--ink)}
+.fbtn{min-height:30px;min-width:36px;padding:2px 8px}
+
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:520px){.opts{grid-template-columns:1fr}}
+.opt{text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);display:flex;flex-direction:column;gap:2px}
+.opt span{font-size:.82rem;color:var(--muted)}
+.opt[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink);background:var(--panel2)}
+.usedchips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.usedchips span{padding:3px 9px;border-radius:5px;background:var(--hi);color:var(--amber-ink);font:600 .85rem 'JetBrains Mono',monospace}
+.legend{font-size:.85rem;color:var(--muted);margin-top:8px}
+
+.probe{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.probeout{font-family:'JetBrains Mono',monospace;font-weight:600}
+.diagram{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel2);padding:8px}
+.diagram svg{display:block;width:100%;height:auto;min-width:340px;max-width:560px;margin:0 auto}
+svg .body{fill:var(--panel);stroke:var(--ink);stroke-width:1.6}
+svg .gate{fill:var(--panel);stroke:var(--ink);stroke-width:1.6}
+svg .w0{stroke:var(--wire-off);stroke-width:2;fill:none}
+svg .w1{stroke:var(--hi);stroke-width:3.4;fill:none}
+svg .sel{stroke-width:5.5}
+svg .unused{stroke:var(--line);stroke-width:1.5;stroke-dasharray:3 3}
+svg .bus{stroke:var(--ink);stroke-width:2}
+svg .dot{fill:var(--ink)}
+svg .chip1{fill:var(--hi)} svg .chip0{fill:var(--lo-soft);stroke:var(--lo);stroke-width:1.2}
+svg .chipt{font-size:11px;font-weight:600;fill:var(--ink)} svg .t1{fill:#13202D}
+svg .pin{font-size:10px;fill:var(--muted)} svg .pinsel{font-size:10px;fill:var(--ink);font-weight:700}
+svg .cap{font-size:10.5px;fill:var(--muted)}
+svg .bv{font-size:11px;font-weight:700;fill:var(--ink)}
+svg .flt{font-size:10px;font-weight:700;fill:var(--bad)}
+svg .gtxt{font-size:10px;fill:var(--ink);font-weight:600}
+
+.faultbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0 12px;padding:10px;border:1px dashed var(--line);border-radius:8px}
+.sum{font-weight:600;margin:6px 0 10px;padding:8px 10px;border-radius:6px;border:1px solid var(--line)}
+.sum.pass{background:var(--ok-soft);border-color:var(--ok)}
+.sum.fail{background:var(--bad-soft);border-color:var(--bad)}
+.res-ok{color:var(--ok);font-weight:700}.res-bad{color:var(--bad);font-weight:700}
+.vt td.mis{background:var(--bad-soft)}
+
+.tabs{margin-bottom:12px}
+.pgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
+@media (max-width:640px){.pgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pcard{border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--panel2);display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.pcard.ok{border-color:var(--ok);background:var(--ok-soft)} .pcard.bad{border-color:var(--bad);background:var(--bad-soft)}
+.pcard .cyc{min-width:64px;min-height:44px;border-radius:6px;border:1px solid var(--ink);background:var(--panel);font:700 1.05rem 'JetBrains Mono',monospace}
+.pcard small,.pair{font:.8rem 'JetBrains Mono',monospace;color:var(--muted)}
+.pres{font-weight:600;font-size:.9rem;min-height:1.3em}
+.dgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0}
+@media (min-width:700px){.dgrid{grid-template-columns:repeat(8,minmax(0,1fr))}}
+.dgrid button{min-height:48px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);font:600 .95rem 'JetBrains Mono',monospace}
+.dgrid button[aria-pressed="true"]{background:var(--hi);border-color:var(--hi);color:var(--amber-ink)}
+.dgrid button.ok{outline:2px solid var(--ok)} .dgrid button.bad{outline:2px solid var(--bad)}
+.score{font-size:.9rem;color:var(--muted)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.two{grid-template-columns:1fr}}
+ul.tight{margin:.4em 0;padding-left:1.2em}
+ul.tight li{margin:.25em 0}
+footer{padding:24px 0 40px;color:var(--muted);font-size:.9rem}
+.tag{display:inline-block;padding:1px 8px;border-radius:5px;font:600 .78rem 'JetBrains Mono',monospace;background:var(--panel2);border:1px solid var(--line)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+
+.top nav a[aria-current="page"]{background:var(--panel2);font-weight:600;box-shadow:inset 0 -2px 0 var(--hi)}
+.brand{color:var(--ink);text-decoration:none}
+.kicker{margin:0 0 8px;font:600 .78rem 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.hero{padding:40px 0 20px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:28px;align-items:center}
+@media (max-width:820px){.hero{grid-template-columns:minmax(0,1fr)}}
+.hero h1{font-size:clamp(2.1rem,5.4vw,3.6rem);max-width:16ch}
+.hero h1 em{font-style:italic;color:var(--hi)}
+.hero .lead{color:var(--muted);font-size:1.1rem;max-width:46ch;margin-top:14px}
+.heroviz{padding:12px}
+.heroviz svg{display:block;width:100%;height:auto;max-width:520px;margin:0 auto}
+.herocap{text-transform:uppercase;margin:6px 0 0;text-align:center;font:600 .8rem 'JetBrains Mono',monospace;color:var(--muted);letter-spacing:.06em}
+.mods{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0 8px}
+@media (max-width:720px){.mods{grid-template-columns:1fr}}
+.mod{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.mod p{color:var(--muted);margin:0 0 10px}
+.mod .btn{display:inline-block;text-decoration:none;line-height:24px;background:var(--hi);border-color:var(--hi);color:var(--amber-ink)}
+.subnav{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+.qtop{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.timer{font-weight:700;font-size:1.15rem;padding:2px 10px;border-radius:6px;border:1px solid var(--line)}
+.timer.low{background:var(--bad-soft);border-color:var(--bad)}
+.qnav{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.qbtn{min-width:38px;min-height:38px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);font:600 .9rem 'JetBrains Mono',monospace}
+.qbtn.done{background:var(--lo-soft);border-color:var(--lo)}
+.qbtn[aria-current="step"]{outline:2px solid var(--ink);outline-offset:1px}
+.qopts{display:grid;gap:8px;margin:12px 0;max-width:560px}
+.asign{max-width:520px}
+.asign .row input{max-width:320px}
+.rtable td,.rtable th{white-space:normal;text-align:left;vertical-align:top}
+.bigscore{font:700 2.4rem/1 'Inter',sans-serif;margin:4px 0}
+
+a.btn{display:inline-block;text-decoration:none;line-height:24px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}
+@media (max-width:560px){.stats{grid-template-columns:1fr}}
+.stats div{padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);display:flex;flex-direction:column;gap:2px}
+.stats b{font-size:1.15rem}
+.topic{display:grid;grid-template-columns:150px minmax(0,1fr) 54px;gap:10px;align-items:center;margin:10px 0}
+@media (max-width:520px){.topic{grid-template-columns:110px minmax(0,1fr) 46px}}
+.bar{height:12px;border-radius:6px;background:var(--panel2);border:1px solid var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--hi)}
+.topic b{text-align:right}
+.rq{border:1px solid var(--line);border-left-width:5px;border-radius:8px;padding:12px 14px;margin:10px 0;background:var(--panel2)}
+.rq.ok{border-left-color:var(--ok)} .rq.bad{border-left-color:var(--bad)}
+.rq .rh{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font:600 .85rem 'JetBrains Mono',monospace;color:var(--muted)}
+.rq p{margin:6px 0}
+.rq .why{color:var(--muted);font-size:.92rem}
+
+/* ---- K-Map Lab style: light default, soft cards, binary rain ---- */
+h1,h2,h3,.brand,.bigscore{font-family:'Manrope','Inter',system-ui,sans-serif;font-weight:800}
+h3{font-weight:700}
+body{position:relative;background:var(--bg)}
+.bits{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.bits span{position:absolute;font:400 16px 'JetBrains Mono',monospace;color:var(--muted);opacity:.2;animation:drift 10s ease-in-out infinite}
+@keyframes drift{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px)}}
+.top,main,footer{position:relative;z-index:1}
+.top{background:var(--panel);background:color-mix(in srgb,var(--panel) 82%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.top .wrap{min-height:64px}
+.brand{display:flex;align-items:center;gap:10px;font-size:1.25rem;letter-spacing:.02em;text-decoration:none;color:var(--ink)}
+.brand .lab{color:var(--muted);font-weight:600;margin-left:-2px;letter-spacing:.06em}
+.logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#3B82F6,#14B8A6);display:grid;grid-template:1fr 1fr/1fr 1fr;gap:3px;padding:7px}
+.logo i{background:#fff;border-radius:3px}.logo i:nth-child(4){opacity:.55}
+.hright{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.top nav a{color:var(--muted);font-weight:500}
+.top nav a:hover{color:var(--ink)}
+.top nav a[aria-current="page"]{color:var(--ink);background:transparent;box-shadow:inset 0 -2px 0 var(--teal)}
+.tswitch{position:relative;width:60px;height:32px;border-radius:999px;border:1px solid var(--line);background:var(--panel);padding:0;flex:none}
+.tswitch .knob{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#3B82F6,#0EA5A5);display:grid;place-items:center;transition:transform .2s}
+.tswitch[aria-checked="true"] .knob{transform:translateX(28px)}
+.tswitch .ic-moon{display:none}.tswitch[aria-checked="true"] .ic-moon{display:block}.tswitch[aria-checked="true"] .ic-sun{display:none}
+.kicker{color:var(--teal)}
+.hero{padding:56px 0 24px;gap:48px}
+.hero h1{font-weight:800;letter-spacing:-.035em;line-height:1.05;max-width:16ch;font-size:clamp(2.4rem,5.4vw,4rem)}
+.hero h1 em{font-style:italic;color:var(--teal);background:linear-gradient(90deg,var(--teal),var(--accent2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.hero .lead{color:var(--muted);font-size:1.15rem;max-width:44ch;margin:18px 0 26px}
+.quip{display:flex;gap:16px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px 24px;max-width:560px;box-shadow:var(--shadow)}
+.quip p{margin:0;font-size:1rem;line-height:1.5}
+.spin{flex:none;animation:spin 7s linear infinite;margin-top:-2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.heroviz{background:var(--panel);border:1px solid var(--line);border-radius:28px;box-shadow:var(--shadow);padding:24px 24px 18px;min-width:0}
+.herocap{letter-spacing:.12em;font-size:.72rem}
+.herostate{margin:6px 0 2px;text-align:center;font:500 .8rem 'JetBrains Mono',monospace;color:var(--ink)}
+.mods{gap:32px;margin:56px 0 40px}
+.mod{border-radius:28px;padding:36px;box-shadow:var(--shadow);gap:0}
+.modtop{display:flex;justify-content:space-between;align-items:flex-start;width:100%}
+.pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:8px 16px;font:500 .78rem 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.tile{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,var(--tile1),var(--tile2));box-shadow:0 8px 18px rgba(14,156,134,.28)}
+.tile.amber{background:linear-gradient(135deg,var(--atile1),var(--atile2));box-shadow:0 8px 18px rgba(219,127,20,.28)}
+.mod h2{font-size:2rem;letter-spacing:-.02em;margin:28px 0 14px}
+.mod p.desc{color:var(--muted);font-size:1.05rem;line-height:1.7;margin:0 0 22px;max-width:42ch}
+.cta{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:1.05rem;text-decoration:none;transition:gap .15s}
+.cta:hover{gap:12px}
+.cta.teal{color:var(--teal)}.cta.amber{color:var(--amber-text)}
+.welcome{width:100%;border-top:1px dashed var(--line);margin-top:20px;padding-top:24px}
+.welcome p{color:var(--ink);font-size:1.05rem;margin:0 0 14px}
+.welcome b{color:var(--amber-text)}
+.switch{background:none;border:0;border-bottom:1px dashed var(--muted);padding:0 0 2px;font:400 .85rem 'JetBrains Mono',monospace;color:var(--muted);cursor:pointer}
+.switch:hover{color:var(--ink);border-bottom-color:var(--ink)}
+.panel{border-radius:20px;box-shadow:var(--shadow)}
+.btn{background:var(--teal);border-color:var(--teal);color:var(--on-teal)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+footer{margin-top:16px;color:var(--muted);font-size:.92rem;padding:0 0 40px}
+.fbar{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:28px}
+.refs{margin-top:10px;font-size:.82rem}
+</style>
+</head>
+<body>
+<div class="bits" id="bits" aria-hidden="true"></div>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#/" aria-label="MUX-DEC LAB home"><span class="logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span><b>MUX-DEC</b><span class="lab">LAB</span></a>
+    <div class="hright">
+      <nav aria-label="Modules"><a href="#/learn" data-route="learn">Learn</a><a href="#/assess" data-route="assess">Assess</a><a href="#/signin" data-route="signin" id="navAuth">Sign in</a></nav>
+      <button class="tswitch" id="themeBtn" role="switch" aria-checked="false" aria-label="Dark theme"><span class="knob"><svg class="ic-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="ic-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></span></button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="view-home">
+    <div class="hero">
+      <div>
+        <p class="kicker">Function realization, visualized</p>
+        <h1>Pick the minterms. Find the <em>simplest</em> circuit.</h1>
+        <p class="lead">A two-part lab for MUX and decoder realization: work through guided circuit building in the workbench, then prove what you know in a timed assessment.</p>
+        <div class="quip"><svg class="spin" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#E8A020" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg><p class="mono" id="quip">Loading…</p></div>
+      </div>
+      <div class="heroviz" aria-hidden="true">
+        <div id="heroSvg"><p class="herocap">Loading…</p></div>
+        <p class="herostate" id="heroState"></p>
+        <p class="herocap" id="heroCap">4-variable function · 8:1 MUX · Gray-code sweep</p>
+      </div>
+    </div>
+    <div class="mods">
+      <article class="mod">
+        <div class="modtop"><span class="pill">Module — Learn</span><span class="tile"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg></span></div>
+        <h2>MUX &amp; Decoder Learning</h2>
+        <p class="desc">Build a function from minterms, realize it with a MUX or a decoder, and see the truth table, implementation table and live circuit as you go.</p>
+        <a class="cta teal" href="#/learn"><span>Open the workbench</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      </article>
+      <article class="mod">
+        <div class="modtop"><span class="pill">Module — Assess</span><span class="tile amber"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 12.5l3 3 5-6"/></svg></span></div>
+        <h2>MUX &amp; Decoder Assessment</h2>
+        <p class="desc">Put your realization skills to the test under timed, scored conditions. Sign in to track your results.</p>
+        <a class="cta amber" id="homeAssess" href="#/signin"><span id="homeAssessTxt">Sign in to begin</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <div class="welcome" id="welcome" hidden></div>
+      </article>
+    </div>
+  </div>
+
+  <div id="view-signin" hidden>
+    <div class="intro" style="padding-bottom:8px">
+      <p class="kicker">Module — Assess</p>
+      <h1 style="max-width:none">Sign in</h1>
+      <p>Sign in to take the timed assessment and keep your scores.</p>
+    </div>
+    <div id="sbody"></div>
+  </div>
+
+  <div id="view-assess" hidden>
+    <div class="intro" style="padding-bottom:8px">
+      <p class="kicker">Module — Assess</p>
+      <h1 style="max-width:none">MUX &amp; Decoder Assessment</h1>
+    </div>
+    <div id="abody"></div>
+  </div>
+
+  <div id="view-results" hidden>
+    <div class="intro" style="padding-bottom:8px">
+      <p class="kicker">Module — Assess</p>
+      <h1 style="max-width:none">Assessment evaluation</h1>
+    </div>
+    <div id="rbody"></div>
+  </div>
+
+  <div id="view-learn" hidden>
+  <div class="intro">
+    <p class="kicker">Module — Learn</p>
+    <h1>Realize any function with a MUX or a decoder</h1>
+    <p>Enter minterms, pick a realization, and watch the circuit compute every row of the truth table. Flip the inputs to trace the live signal path, or inject a fault to see verification catch it.</p>
+    <div class="subnav"><button class="chip" data-scroll="bench">Workbench</button><button class="chip" data-scroll="practice">Practice</button><button class="chip" data-scroll="tests">Test report</button><button class="chip" data-scroll="notes">Notes</button></div>
+  </div>
+
+  <section id="bench" aria-label="Workbench" style="padding-top:8px">
+    <div class="bench">
+      <div class="panel">
+        <h3><span class="step">1</span>Minterms</h3>
+        <div class="row"><span class="lbl" id="nlbl">Variables</span>
+          <div class="seg" role="group" aria-labelledby="nlbl">
+            <button data-act="n" data-n="2">2</button><button data-act="n" data-n="3">3</button><button data-act="n" data-n="4">4</button>
+          </div>
+        </div>
+        <label class="lbl" for="mt">Minterms where F = 1 (comma or space separated, e.g. 1, 2, 4, 7)</label>
+        <div class="field" style="margin-top:4px">
+          <input id="mt" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="1, 2, 4, 7">
+          <button class="btn" data-act="apply">Apply</button>
+        </div>
+        <div id="msg" class="msg" role="status" aria-live="polite"></div>
+        <p class="lbl" style="margin-top:12px">Presets</p>
+        <div class="chips" id="presets"></div>
+      </div>
+
+      <div class="panel">
+        <h3><span class="step">2</span>Truth table</h3>
+        <p class="lbl" style="margin-top:0">Click an F value to flip it. Click a row to trace it in the circuit.</p>
+        <div class="scroll" id="truth"></div>
+      </div>
+
+      <div class="panel">
+        <h3><span class="step">3</span>Realization</h3>
+        <div id="impl"></div>
+      </div>
+
+      <div class="panel">
+        <h3><span class="step">4</span>Circuit</h3>
+        <div class="probe" id="probe" aria-label="Test inputs"></div>
+        <div class="diagram" id="diagram"></div>
+        <p class="legend" id="dcap"></p>
+      </div>
+
+      <div class="panel full">
+        <h3><span class="step">5</span>Verify equivalence</h3>
+        <div class="faultbar" role="group" aria-label="Fault injection">
+          <span class="lbl">Fault injection</span>
+          <div class="seg" id="fseg">
+            <button data-act="fmode" data-v="none">None</button><button data-act="fmode" data-v="0">Stuck-at-0</button><button data-act="fmode" data-v="1">Stuck-at-1</button>
+          </div>
+          <label class="lbl" for="fline">on line</label>
+          <select id="fline"></select>
+        </div>
+        <div id="vsum" class="sum" role="status" aria-live="polite"></div>
+        <div class="scroll" id="vtable"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="practice" aria-label="Practice">
+    <div class="sec-head">
+      <h2>Practice</h2>
+      <p>A random 3-variable function each time. Work it out yourself, then check.</p>
+    </div>
+    <div class="panel">
+      <div class="seg tabs" role="group" aria-label="Practice mode">
+        <button data-act="pmode" data-m="mux">Fill the MUX</button><button data-act="pmode" data-m="dec">Wire the decoder</button>
+      </div>
+      <div id="pbody"></div>
+      <div id="pfb" class="msg" role="status" aria-live="polite"></div>
+      <div class="row">
+        <button class="btn" data-act="pcheck">Check answer</button>
+        <button class="btn ghost" data-act="preveal">Show answer</button>
+        <button class="btn ghost" data-act="pnew">New problem</button>
+        <span class="score" id="pscore"></span>
+      </div>
+    </div>
+  </section>
+
+  <section id="tests" aria-label="Test report">
+    <div class="sec-head">
+      <h2>Test report</h2>
+      <p>Every normal case is realized four ways (each data-variable choice, the full MUX, and both decoder styles) and checked on every truth-table row. Edge and fault cases check that bad input is rejected and that injected faults are detected.</p>
+    </div>
+    <div class="panel">
+      <div class="row"><button class="btn" data-act="runtests">Run all tests</button><span id="tsum" class="mono" style="font-weight:600"></span></div>
+      <div class="scroll"><table id="ttable"></table></div>
+    </div>
+  </section>
+
+  <section id="notes" aria-label="Notes">
+    <div class="sec-head"><h2>Notes</h2></div>
+    <div class="two">
+      <div class="panel">
+        <h3>Input format and assumptions</h3>
+        <ul class="tight">
+          <li>Variables are A (most significant bit) through D. Minterm <b>m</b> is the binary number ABCD read as an integer.</li>
+          <li>Supported sizes: 2, 3 or 4 variables. Minterms must be whole numbers from 0 to 2ⁿ − 1.</li>
+          <li>Separators: commas, spaces or semicolons. Forms like <span class="mono">m5</span> and <span class="mono">Σm(1,2)</span> are accepted.</li>
+          <li>Duplicates are merged with a warning. An empty list means F = 0.</li>
+          <li>Don't-cares are not modelled. Every unlisted minterm is 0.</li>
+          <li>Faults are single stuck-at faults on the physical line, one at a time.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>How each realization works</h3>
+        <ul class="tight">
+          <li><b>2ⁿ:1 MUX.</b> All n variables drive the selects. Tie input Iₘ to F(m).</li>
+          <li><b>2ⁿ⁻¹:1 MUX.</b> Choose one variable X as data. For each select value, look at the minterm pair (X = 0, X = 1): (0,0) gives 0, (1,1) gives 1, (0,1) gives X, (1,0) gives X′.</li>
+          <li><b>Decoder + OR.</b> The decoder raises exactly one output Dₘ. OR together the outputs for the minterms of F.</li>
+          <li><b>Decoder + NAND.</b> With active-low outputs Yₘ, a NAND of the chosen lines gives the same OR.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+  </div>
+</main>
+<footer>
+  <div class="wrap fbar"><span>MUX-DEC LAB · Function realization, practiced properly.</span><span class="mono" id="fbyte" aria-hidden="true">01110001</span></div>
+  <div class="wrap refs">Reference texts: M. Morris Mano and M. D. Ciletti, <i>Digital Design</i>; T. L. Floyd, <i>Digital Fundamentals</i>. Built for the EC2201 Unit II project, Function Realization using MUX/Decoder.</div>
+</footer>
+
+<script>
+(function(){
+'use strict';
+var V=['A','B','C','D'];
+var $=function(s){return document.querySelector(s)};
+var esc=function(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
+var bit=function(m,i,n){return (m>>(n-1-i))&1};
+var range=function(n){return Array.from({length:n},function(_,i){return i})};
+
+/* ---------- state ---------- */
+var S={n:3,mt:new Set([1,2,4,7]),impl:'mux',dv:2,fmode:'none',fl:0,probe:0};
+
+/* ---------- parsing ---------- */
+function parseMinterms(text,n){
+  var errors=[],warnings=[],set=new Set(),dups=[];
+  var cleaned=String(text).replace(/[Σ∑()]/g,' ').replace(/\bm\b/gi,' ');
+  var tokens=cleaned.split(/[\s,;]+/).filter(Boolean);
+  var max=(1<<n)-1;
+  tokens.forEach(function(t){
+    if(!/^m?\d+$/i.test(t)){errors.push('"'+t+'" is not a whole number. Use digits only, like 1, 2, 4.');return;}
+    var v=parseInt(t.replace(/^m/i,''),10);
+    if(v>max){errors.push('Minterm '+v+' is out of range for '+n+' variables. Use 0 to '+max+'.');return;}
+    if(set.has(v)){if(dups.indexOf(v)<0)dups.push(v);return;}
+    set.add(v);
+  });
+  if(dups.length)warnings.push('Duplicate minterm'+(dups.length>1?'s':'')+' '+dups.join(', ')+' merged.');
+  return {ok:errors.length===0,minterms:set,errors:errors,warnings:warnings,empty:tokens.length===0};
+}
+function parseSpec(n,text){
+  if(!Number.isInteger(n)||n<2||n>4){return {ok:false,minterms:new Set(),errors:[n+' variables is not supported. Use 2, 3 or 4.'],warnings:[]};}
+  return parseMinterms(text,n);
+}
+
+/* ---------- circuit models ---------- */
+function lab(code,dv){return code==='0'?'0':code==='1'?'1':code==='X'?V[dv]:V[dv]+'′';}
+function buildMux(n,mt,dv){
+  var sel=range(n).filter(function(i){return i!==dv}),k=1<<sel.length,inputs=[],rows=[];
+  for(var s=0;s<k;s++){
+    var pair=[0,1].map(function(d){var m=0;for(var i=0;i<n;i++){var b=(i===dv)?d:((s>>(sel.length-1-sel.indexOf(i)))&1);m=(m<<1)|b;}return m;});
+    var f0=mt.has(pair[0])?1:0,f1=mt.has(pair[1])?1:0;
+    var v=f0===f1?String(f0):(f1?'X':'N');
+    inputs.push(v);rows.push({s:s,pair:pair,f0:f0,f1:f1,v:v});
+  }
+  return {type:'mux',full:false,n:n,dv:dv,sel:sel,k:k,inputs:inputs,rows:rows};
+}
+function buildMuxFull(n,mt){
+  var N=1<<n,inputs=[];for(var m=0;m<N;m++)inputs.push(mt.has(m)?'1':'0');
+  return {type:'mux',full:true,n:n,dv:-1,sel:range(n),k:N,inputs:inputs,rows:[]};
+}
+function buildDec(n,mt,low){
+  return {type:'dec',n:n,low:low,used:Array.from(mt).sort(function(a,b){return a-b}),N:1<<n};
+}
+function circuit(){
+  if(S.impl==='mux')return buildMux(S.n,S.mt,S.dv);
+  if(S.impl==='mux-full')return buildMuxFull(S.n,S.mt);
+  return buildDec(S.n,S.mt,S.impl==='dec-nand');
+}
+function evalC(c,m,fault){
+  var n=c.n,lines;
+  if(c.type==='mux'){
+    var s=0;c.sel.forEach(function(vi){s=(s<<1)|bit(m,vi,n)});
+    lines=c.inputs.map(function(code,j){
+      var v=code==='0'?0:code==='1'?1:code==='X'?bit(m,c.dv,n):1-bit(m,c.dv,n);
+      if(fault&&fault.line===j)v=fault.val;return v;});
+    return {out:lines[s],sel:s,lines:lines,selBits:c.sel.map(function(vi){return bit(m,vi,n)})};
+  }
+  lines=[];
+  for(var j=0;j<c.N;j++){var v=c.low?(j===m?0:1):(j===m?1:0);if(fault&&fault.line===j)v=fault.val;lines.push(v);}
+  var out=0;
+  if(c.used.length){out=c.low?(c.used.some(function(j){return lines[j]===0})?1:0):(c.used.some(function(j){return lines[j]===1})?1:0);}
+  return {out:out,sel:m,lines:lines,selBits:range(n).map(function(i){return bit(m,i,n)})};
+}
+function verify(c,mt,fault){
+  var N=1<<c.n,rows=[],bad=[];
+  for(var m=0;m<N;m++){var r=evalC(c,m,fault),exp=mt.has(m)?1:0,ok=r.out===exp;rows.push({m:m,exp:exp,act:r.out,ok:ok,sel:r.sel});if(!ok)bad.push(m);}
+  return {rows:rows,bad:bad,ok:bad.length===0};
+}
+function curFault(){return S.fmode==='none'?null:{line:S.fl,val:parseInt(S.fmode,10)};}
+function lineCount(c){return c.type==='mux'?c.k:c.N;}
+function lineName(c,j){return c.type==='mux'?'I'+j:(c.low?'Y':'D')+j;}
+function expr(c){
+  if(c.type==='mux'){
+    var parts=[];
+    c.inputs.forEach(function(code,s){
+      if(code==='0')return;
+      var b=c.sel.map(function(vi,t){return V[vi]+(((s>>(c.sel.length-1-t))&1)?'':'′')}).join('');
+      parts.push(code==='1'?b:b+'·'+lab(code,c.dv));
+    });
+    return 'F = '+(parts.length?parts.join(' + '):'0');
+  }
+  if(!c.used.length)return 'F = 0';
+  return c.low?'F = NAND('+c.used.map(function(j){return 'Y'+j}).join(', ')+')':'F = '+c.used.map(function(j){return 'm'+j}).join(' + ');
+}
+function sigma(mt){var a=Array.from(mt).sort(function(x,y){return x-y});return 'Σm('+a.join(', ')+')';}
+function fname(){return 'F('+V.slice(0,S.n).join(', ')+')';}
+
+/* ---------- SVG ---------- */
+function svgMux(c,m,fault){
+  var r=evalC(c,m,fault),k=c.k,rowH=k>8?22:26,y0=34,h=k*rowH+16,H=y0+h+80;
+  var wc=function(v){return v?'w1':'w0'};
+  var s='<svg viewBox="0 0 430 '+H+'" role="img" aria-label="'+k+' to 1 multiplexer with the current select path highlighted">';
+  s+='<polygon class="body" points="220,'+y0+' 290,'+(y0+22)+' 290,'+(y0+h-22)+' 220,'+(y0+h)+'"/>';
+  s+='<text class="cap" x="255" y="'+(y0-10)+'" text-anchor="middle">'+k+':1 MUX</text>';
+  for(var j=0;j<k;j++){
+    var y=y0+8+rowH*j+rowH/2,v=r.lines[j],isSel=j===r.sel,code=c.inputs[j];
+    s+='<line class="'+wc(v)+(isSel?' sel':'')+'" x1="54" y1="'+y+'" x2="220" y2="'+y+'"/>';
+    s+='<rect class="chip'+v+'" x="6" y="'+(y-9)+'" width="48" height="18" rx="4"/>';
+    s+='<text class="chipt t'+v+'" x="30" y="'+(y+4)+'" text-anchor="middle">'+lab(code,c.dv)+'</text>';
+    s+='<text class="'+(isSel?'pinsel':'pin')+'" x="226" y="'+(y+3.5)+'">I'+j+'</text>';
+    if(fault&&fault.line===j)s+='<text class="flt" x="62" y="'+(y-4)+'">s-a-'+fault.val+'</text>';
+  }
+  var sl=c.sel.length;
+  c.sel.forEach(function(vi,t){
+    var x=228+t*20,edge=y0+h-22*(x-220)/70,b=r.selBits[t];
+    s+='<line class="'+wc(b)+'" x1="'+x+'" y1="'+(y0+h+34)+'" x2="'+x+'" y2="'+edge+'"/>';
+    s+='<text class="bv" x="'+x+'" y="'+(y0+h+48)+'" text-anchor="middle">'+V[vi]+'</text>';
+    s+='<text class="bv" x="'+x+'" y="'+(y0+h+63)+'" text-anchor="middle">'+b+'</text>';
+  });
+  var ym=y0+h/2;
+  s+='<line class="'+wc(r.out)+'" x1="290" y1="'+ym+'" x2="370" y2="'+ym+'"/>';
+  s+='<rect class="chip'+r.out+'" x="370" y="'+(ym-10)+'" width="50" height="20" rx="4"/><text class="chipt t'+r.out+'" x="395" y="'+(ym+4)+'" text-anchor="middle">F = '+r.out+'</text>';
+  return s+'</svg>';
+}
+function svgDec(c,m,fault){
+  var r=evalC(c,m,fault),N=c.N,n=c.n,rowH=N>8?22:26,y0=34,h=N*rowH+16,H=y0+h+20;
+  var wc=function(v){return v?'w1':'w0'};
+  var s='<svg viewBox="0 0 430 '+H+'" role="img" aria-label="'+n+' to '+N+' decoder feeding a '+(c.low?'NAND':'OR')+' gate">';
+  s+='<rect class="body" x="100" y="'+y0+'" width="70" height="'+h+'" rx="4"/>';
+  s+='<text class="cap" x="135" y="'+(y0-10)+'" text-anchor="middle">'+n+':'+N+' decoder</text>';
+  for(var i=0;i<n;i++){
+    var y=y0+h*(i+0.5)/n,b=r.selBits[i];
+    s+='<line class="'+wc(b)+'" x1="40" y1="'+y+'" x2="100" y2="'+y+'"/>';
+    s+='<rect class="chip'+b+'" x="6" y="'+(y-9)+'" width="34" height="18" rx="4"/><text class="chipt t'+b+'" x="23" y="'+(y+4)+'" text-anchor="middle">'+V[i]+'='+b+'</text>';
+  }
+  var ys=[];
+  for(var j=0;j<N;j++){
+    var yy=y0+8+rowH*j+rowH/2,v=r.lines[j],used=c.used.indexOf(j)>=0,x1=c.low?175:170;
+    if(c.low)s+='<circle cx="172.5" cy="'+yy+'" r="3" class="gate"/>';
+    s+='<text class="'+(j===r.sel?'pinsel':'pin')+'" x="164" y="'+(yy+3.5)+'" text-anchor="end">'+(c.low?'Y':'D')+j+'</text>';
+    if(used){
+      s+='<line class="'+wc(v)+'" x1="'+x1+'" y1="'+yy+'" x2="250" y2="'+yy+'"/><circle class="dot" cx="250" cy="'+yy+'" r="2.5"/>';
+      ys.push(yy);
+    }else{
+      s+='<line class="unused" x1="'+x1+'" y1="'+yy+'" x2="205" y2="'+yy+'"/>';
+    }
+    if(fault&&fault.line===j)s+='<text class="flt" x="'+(used?196:208)+'" y="'+(yy-3)+'">s-a-'+fault.val+'</text>';
+  }
+  if(ys.length){
+    var mn=Math.min.apply(null,ys),mx=Math.max.apply(null,ys),yc=(mn+mx)/2;
+    s+='<line class="bus" x1="250" y1="'+mn+'" x2="250" y2="'+mx+'"/>';
+    s+='<line class="'+wc(r.out)+'" x1="250" y1="'+yc+'" x2="268" y2="'+yc+'"/>';
+    s+='<path class="gate" d="M265,'+(yc-24)+' Q290,'+yc+' 265,'+(yc+24)+' Q305,'+(yc+24)+' 325,'+yc+' Q305,'+(yc-24)+' 265,'+(yc-24)+' Z"/>';
+    s+='<text class="gtxt" x="293" y="'+(yc+3.5)+'" text-anchor="middle">'+(c.low?'NAND':'OR')+'</text>';
+    var ox=325;
+    if(c.low){s+='<circle class="gate" cx="329" cy="'+yc+'" r="4"/>';ox=333;}
+    s+='<line class="'+wc(r.out)+'" x1="'+ox+'" y1="'+yc+'" x2="370" y2="'+yc+'"/>';
+    s+='<rect class="chip'+r.out+'" x="370" y="'+(yc-10)+'" width="50" height="20" rx="4"/><text class="chipt t'+r.out+'" x="395" y="'+(yc+4)+'" text-anchor="middle">F = '+r.out+'</text>';
+  }else{
+    var y2=y0+h/2;
+    s+='<text class="cap" x="230" y="'+(y2-14)+'">No minterms, so no gate:</text>';
+    s+='<line class="w0" x1="230" y1="'+y2+'" x2="370" y2="'+y2+'"/>';
+    s+='<rect class="chip0" x="370" y="'+(y2-10)+'" width="50" height="20" rx="4"/><text class="chipt t0" x="395" y="'+(y2+4)+'" text-anchor="middle">F = 0</text>';
+  }
+  return s+'</svg>';
+}
+
+/* ---------- rendering ---------- */
+function showMsg(kind,html){var e=$('#msg');e.className='msg'+(kind?' '+kind:'');e.innerHTML=html;}
+function syncText(){$('#mt').value=Array.from(S.mt).sort(function(a,b){return a-b}).join(', ');}
+function summaryMsg(){
+  var N=1<<S.n;
+  showMsg('ok',esc(fname())+' = '+esc(sigma(S.mt))+'. '+S.mt.size+' of '+N+' rows are 1'+(S.mt.size===0?' (constant 0)':S.mt.size===N?' (constant 1)':'')+'.');
+}
+function renderNbtn(){
+  document.querySelectorAll('[data-act="n"]').forEach(function(b){b.setAttribute('aria-pressed',String(parseInt(b.dataset.n,10)===S.n))});
+}
+var PRESETS=[
+  {t:'XOR',n:2,m:[1,2]},{t:'Full-adder sum',n:3,m:[1,2,4,7]},{t:'Full-adder carry',n:3,m:[3,5,6,7]},
+  {t:'Even parity',n:3,m:[0,3,5,6]},{t:'4-variable sample',n:4,m:[0,2,5,7,8,10,13,15]},{t:'Constant 0',n:3,m:[]}
+];
+function renderPresets(){
+  $('#presets').innerHTML=PRESETS.map(function(p,i){return '<button class="chip" data-act="preset" data-i="'+i+'">'+esc(p.t)+'</button>'}).join('');
+}
+function renderTruth(){
+  var n=S.n,N=1<<n;
+  var h='<table class="tt"><thead><tr><th>m</th>'+V.slice(0,n).map(function(v){return '<th>'+v+'</th>'}).join('')+'<th>F</th></tr></thead><tbody>';
+  for(var m=0;m<N;m++){
+    var f=S.mt.has(m)?1:0;
+    h+='<tr data-act="row" data-m="'+m+'" class="'+(m===S.probe?'prow':'')+'"><td>'+m+'</td>';
+    for(var i=0;i<n;i++){var b=bit(m,i,n);h+='<td class="b'+b+'">'+b+'</td>';}
+    h+='<td><button class="fbtn f'+f+'" data-act="toggle" data-m="'+m+'" aria-label="F at minterm '+m+' is '+f+'. Flip it.">'+f+'</button></td></tr>';
+  }
+  $('#truth').innerHTML=h+'</tbody></table>';
+}
+function muxTable(c){
+  var v=V[c.dv];
+  var h='<div class="scroll"><table class="it"><thead><tr><th></th>'+c.rows.map(function(r){return '<th>I'+r.s+'</th>'}).join('')+'</tr></thead><tbody>';
+  [0,1].forEach(function(d){
+    h+='<tr><th>'+v+' = '+d+'</th>'+c.rows.map(function(r){var inF=d?r.f1:r.f0;return '<td class="'+(inF?'in':'')+'">'+r.pair[d]+'</td>'}).join('')+'</tr>';
+  });
+  h+='<tr class="res"><th>Input</th>'+c.rows.map(function(r){return '<td>'+lab(r.v,c.dv)+'</td>'}).join('')+'</tr></tbody></table></div>';
+  h+='<p class="legend">Bold underlined minterms are in F. Both rows marked gives 1, neither gives 0, only the '+v+' = 1 row gives '+v+', only the '+v+' = 0 row gives '+v+'′.</p>';
+  return h;
+}
+function renderImpl(){
+  var n=S.n;
+  var opts=[['mux',(1<<(n-1))+':1 MUX',(n-1)+' select lines, one variable as data'],
+    ['mux-full',(1<<n)+':1 MUX','all '+n+' variables select'],
+    ['dec-or',n+':'+(1<<n)+' decoder + OR','active-high outputs'],
+    ['dec-nand',n+':'+(1<<n)+' decoder + NAND','active-low outputs']];
+  var h='<div class="opts">'+opts.map(function(o){return '<button class="opt" data-act="impl" data-id="'+o[0]+'" aria-pressed="'+(S.impl===o[0])+'"><b>'+o[1]+'</b><span>'+o[2]+'</span></button>'}).join('')+'</div>';
+  if(S.impl==='mux'){
+    h+='<div class="row"><span class="lbl" id="dvl">Data variable</span><div class="seg" role="group" aria-labelledby="dvl">'+
+      V.slice(0,n).map(function(v,i){return '<button data-act="dv" data-i="'+i+'" aria-pressed="'+(S.dv===i)+'">'+v+'</button>'}).join('')+'</div></div>';
+  }
+  var c=circuit();
+  if(S.impl==='mux')h+=muxTable(c);
+  else if(S.impl==='mux-full')h+='<p class="legend">Each data input Iₘ is tied to F(m): 1 where m is a minterm of F, otherwise 0.</p>';
+  else h+='<p class="lbl" style="margin-bottom:0">Outputs feeding the '+(c.low?'NAND':'OR')+' gate</p><div class="usedchips">'+(c.used.length?c.used.map(function(j){return '<span>'+(c.low?'Y':'D')+j+'</span>'}).join(''):'<span style="background:var(--panel2);color:var(--muted)">none</span>')+'</div>';
+  h+='<p class="eq">'+esc(expr(c))+'</p>';
+  $('#impl').innerHTML=h;
+}
+function renderProbe(){
+  var n=S.n,c=circuit(),r=evalC(c,S.probe,curFault());
+  var h='<span class="lbl">Test inputs</span>';
+  for(var i=0;i<n;i++){var b=bit(S.probe,i,n);h+='<button class="bitbtn b'+b+'" data-act="flip" data-i="'+i+'" aria-pressed="'+(b===1)+'" aria-label="Input '+V[i]+' is '+b+'. Flip it."><span>'+V[i]+'</span><b>'+b+'</b></button>';}
+  h+='<span class="probeout">m'+S.probe+' → F = '+r.out+'</span>';
+  $('#probe').innerHTML=h;
+}
+function renderLogic(){
+  var c=circuit(),f=curFault();
+  $('#diagram').innerHTML=c.type==='mux'?svgMux(c,S.probe,f):svgDec(c,S.probe,f);
+  var cap;
+  if(c.type==='mux')cap='Select lines: '+c.sel.map(function(i){return V[i]}).join(', ')+(c.full?'.':'. Data variable: '+V[c.dv]+'.')+' Amber wires carry 1, grey wires carry 0. The thickest input is the one the selects choose.';
+  else cap='Amber wires carry 1, grey wires carry 0. '+(c.low?'Outputs are active-low, so the selected output goes to 0.':'Exactly one output is 1 for each input combination.');
+  $('#dcap').textContent=cap;
+}
+function renderFault(){
+  var c=circuit(),cnt=lineCount(c);
+  if(S.fl>=cnt)S.fl=0;
+  var sel=$('#fline'),h='';
+  for(var j=0;j<cnt;j++)h+='<option value="'+j+'"'+(j===S.fl?' selected':'')+'>'+lineName(c,j)+'</option>';
+  sel.innerHTML=h;sel.disabled=S.fmode==='none';
+  document.querySelectorAll('[data-act="fmode"]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.v===S.fmode))});
+}
+function renderVerify(){
+  var c=circuit(),f=curFault(),v=verify(c,S.mt,f),N=1<<S.n;
+  var sum=$('#vsum');
+  if(v.ok){
+    sum.className='sum pass';
+    sum.textContent=f?('All '+N+' rows still match. This fault is masked: it doesn\u2019t change any output for this function (for example, a decoder output that isn\u2019t wired to the gate). Try another line.'):('Equivalent: all '+N+' rows match the truth table.');
+  }else{
+    sum.className='sum fail';
+    sum.textContent=(f?'Fault detected. ':'Not equivalent. ')+v.bad.length+' of '+N+' rows differ (m'+v.bad.join(', m')+').';
+  }
+  var h='<table class="vt"><thead><tr><th>m</th><th>'+V.slice(0,S.n).join('')+'</th><th>Path</th><th>Expected F</th><th>Circuit F</th><th>Result</th></tr></thead><tbody>';
+  v.rows.forEach(function(r){
+    var bits=range(S.n).map(function(i){return bit(r.m,i,S.n)}).join('');
+    var path=c.type==='mux'?'I'+r.sel+' ('+lab(c.inputs[r.sel],c.dv)+')':(c.low?'Y':'D')+r.sel+' active';
+    h+='<tr class="'+(r.m===S.probe?'prow':'')+'"><td>'+r.m+'</td><td>'+bits+'</td><td>'+path+'</td><td>'+r.exp+'</td><td class="'+(r.ok?'':'mis')+'">'+r.act+'</td><td class="'+(r.ok?'res-ok':'res-bad')+'">'+(r.ok?'✓ match':'✗ mismatch')+'</td></tr>';
+  });
+  $('#vtable').innerHTML=h+'</tbody></table>';
+}
+function renderAll(){
+  S.probe&=((1<<S.n)-1);
+  renderNbtn();renderTruth();renderImpl();renderProbe();renderLogic();renderFault();renderVerify();
+}
+function setMt(set){S.mt=set;syncText();summaryMsg();renderAll();}
+
+/* ---------- input handling ---------- */
+function applyText(live){
+  var p=parseMinterms($('#mt').value,S.n);
+  if(!p.ok){showMsg('bad',p.errors.map(esc).join('<br>')+'<br>The circuit still shows your last valid function.');return;}
+  S.mt=p.minterms;
+  if(p.warnings.length)showMsg('warn',esc(p.warnings.join(' '))+' '+esc(fname())+' = '+esc(sigma(S.mt))+'.');
+  else if(p.empty)showMsg('warn','No minterms entered, so F = 0 for every input.');
+  else summaryMsg();
+  renderAll();
+}
+
+/* ---------- tests ---------- */
+function realizations(n,mt){
+  var l=[];
+  for(var d=0;d<n;d++)l.push({name:(1<<(n-1))+':1 MUX ('+V[d]+' as data)',c:buildMux(n,mt,d)});
+  l.push({name:(1<<n)+':1 MUX',c:buildMuxFull(n,mt)});
+  l.push({name:'Decoder + OR',c:buildDec(n,mt,false)});
+  l.push({name:'Decoder + NAND',c:buildDec(n,mt,true)});
+  return l;
+}
+function allMatch(n,mt){
+  var rs=realizations(n,mt),bad=rs.filter(function(r){return !verify(r.c,mt,null).ok});
+  return {ok:bad.length===0,count:rs.length,bad:bad};
+}
+var NORMAL=[
+  ['N01','Full-adder sum',3,'1,2,4,7'],['N02','Full-adder carry',3,'3,5,6,7'],['N03','XOR',2,'1,2'],['N04','XNOR',2,'0,3'],
+  ['N05','OR',2,'1,2,3'],['N06','Even parity',3,'0,3,5,6'],['N07','F = C',3,'1,3,5,7'],
+  ['N08','4-variable sample',4,'0,2,5,7,8,10,13,15'],['N09','4-variable, five minterms',4,'1,3,7,11,15'],['N10','Two isolated minterms',3,'2,4']
+];
+function runTests(){
+  var res=[];
+  NORMAL.forEach(function(t){
+    var p=parseSpec(t[2],t[3]),r;
+    if(!p.ok)r={pass:false,actual:'Rejected: '+p.errors[0]};
+    else{var a=allMatch(t[2],p.minterms);r={pass:a.ok,actual:a.ok?a.count+' realizations match all '+(1<<t[2])+' rows':'Mismatch: '+a.bad.map(function(b){return b.name}).join(', ')};}
+    res.push({id:t[0],kind:'Normal',name:t[1],input:'n='+t[2]+', m('+t[3]+')',expect:'All realizations equivalent',pass:r.pass,actual:r.actual});
+  });
+  function edge(id,name,n,text,expect,fn){
+    var p=parseSpec(n,text),r=fn(p);
+    res.push({id:id,kind:'Edge',name:name,input:'n='+n+', m('+text+')',expect:expect,pass:r.pass,actual:r.actual});
+  }
+  edge('E01','Empty minterm list',3,'','Accepted as constant 0',function(p){
+    var a=p.ok&&allMatch(3,p.minterms);return {pass:!!(p.ok&&p.minterms.size===0&&a.ok),actual:p.ok?'F = 0, '+a.count+' realizations match':'Rejected'};});
+  edge('E02','All minterms',3,'0,1,2,3,4,5,6,7','Accepted as constant 1',function(p){
+    var a=p.ok&&allMatch(3,p.minterms),c=p.ok&&buildMux(3,p.minterms,2);
+    var allOne=c&&c.inputs.every(function(x){return x==='1'});
+    return {pass:!!(p.ok&&a.ok&&allOne),actual:p.ok?'All MUX inputs tied to 1, '+a.count+' realizations match':'Rejected'};});
+  edge('E03','Minterm out of range',3,'1,8','Rejected with range error',function(p){return {pass:!p.ok&&/out of range/.test(p.errors[0]||''),actual:p.ok?'Accepted (wrong)':p.errors[0]};});
+  edge('E04','Non-numeric token',3,'1,x,3','Rejected with format error',function(p){return {pass:!p.ok&&/not a whole number/.test(p.errors[0]||''),actual:p.ok?'Accepted (wrong)':p.errors[0]};});
+  edge('E05','Duplicate minterms',3,'1,1,2','Accepted, duplicates merged with warning',function(p){return {pass:p.ok&&p.minterms.size===2&&p.warnings.length===1,actual:p.ok?'Set {'+Array.from(p.minterms).join(', ')+'}; '+p.warnings[0]:'Rejected'};});
+  edge('E06','Unsupported variable count',5,'1','Rejected with size error',function(p){return {pass:!p.ok&&/not supported/.test(p.errors[0]||''),actual:p.ok?'Accepted (wrong)':p.errors[0]};});
+  function fault(id,name,c,mt,f){
+    var v=verify(c,mt,f);
+    res.push({id:id,kind:'Fault',name:name,input:'n=3, m(1,2,4,7), s-a-'+f.val+' on '+lineName(c,f.line),expect:'Verification detects the fault',pass:!v.ok,actual:v.ok?'Fault not detected':'Detected at m'+v.bad.join(', m')});
+  }
+  var mt=new Set([1,2,4,7]);
+  fault('F01','MUX data input stuck low',buildMux(3,mt,2),mt,{line:0,val:0});
+  fault('F02','Decoder + OR output stuck high',buildDec(3,mt,false),mt,{line:2,val:1});
+  fault('F03','Decoder + NAND output stuck high',buildDec(3,mt,true),mt,{line:1,val:1});
+  return res;
+}
+function renderTests(){
+  var r=runTests(),p=r.filter(function(x){return x.pass}).length;
+  $('#tsum').textContent=p+' of '+r.length+' passed ('+r.filter(function(x){return x.kind==='Normal'}).length+' normal, '+r.filter(function(x){return x.kind!=='Normal'}).length+' edge/fault)';
+  var h='<thead><tr><th>ID</th><th>Type</th><th style="text-align:left">Case</th><th style="text-align:left">Input</th><th style="text-align:left">Expected</th><th style="text-align:left">Actual</th><th>Result</th></tr></thead><tbody>';
+  r.forEach(function(x){
+    h+='<tr><td>'+x.id+'</td><td>'+x.kind+'</td><td style="text-align:left">'+esc(x.name)+'</td><td style="text-align:left">'+esc(x.input)+'</td><td style="text-align:left;white-space:normal">'+esc(x.expect)+'</td><td style="text-align:left;white-space:normal">'+esc(x.actual)+'</td><td class="'+(x.pass?'res-ok':'res-bad')+'">'+(x.pass?'✓ pass':'✗ fail')+'</td></tr>';
+  });
+  $('#ttable').innerHTML=h+'</tbody>';
+}
+
+/* ---------- practice ---------- */
+var CODES=['0','1','X','N'];
+var P={mode:'mux',mt:new Set(),ans:[0,0,0,0],chosen:new Set(),checked:false,revealed:false,counted:false,solved:0,tried:0};
+function pNew(){
+  var size=2+Math.floor(Math.random()*5),s=new Set();
+  while(s.size<size)s.add(Math.floor(Math.random()*8));
+  P.mt=s;P.ans=[0,0,0,0];P.chosen=new Set();P.checked=false;P.revealed=false;P.counted=false;
+  $('#pfb').className='msg';$('#pfb').textContent='';
+  renderPractice();
+}
+function pSolution(){return buildMux(3,P.mt,2);}
+function renderPractice(){
+  document.querySelectorAll('[data-act="pmode"]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.m===P.mode))});
+  var h='<p class="mono" style="font-weight:600;margin:0">F(A, B, C) = '+esc(sigma(P.mt))+'</p>';
+  if(P.mode==='mux'){
+    var sol=pSolution();
+    h+='<p>Fill the four data inputs of a 4:1 MUX. A and B drive the selects (A is the more significant). C is the data variable. Click an input to cycle 0, 1, C, C′.</p><div class="pgrid">';
+    sol.rows.forEach(function(r,s){
+      var cls='',res='';
+      if(P.checked||P.revealed){
+        var ok=CODES[P.ans[s]]===r.v;
+        if(P.revealed){res='Answer: '+lab(r.v,2);cls=ok?'ok':'bad';}
+        else{cls=ok?'ok':'bad';res=ok?'✓ Correct':'✗ Not yet';}
+      }
+      h+='<div class="pcard '+cls+'"><div>I'+s+' <small>AB = '+(s>>1)+(s&1)+'</small></div><button class="cyc" data-act="pcycle" data-s="'+s+'" aria-label="I'+s+' is '+lab(CODES[P.ans[s]],2)+'. Cycle value.">'+lab(CODES[P.ans[s]],2)+'</button><div class="pair">m'+r.pair[0]+' = '+r.f0+' · m'+r.pair[1]+' = '+r.f1+'</div><div class="pres">'+res+'</div></div>';
+    });
+    h+='</div>';
+  }else{
+    h+='<p>Realize F with a 3:8 decoder and an OR gate. Select every decoder output that must feed the gate.</p><div class="dgrid">';
+    for(var j=0;j<8;j++){
+      var cls2='';
+      if(P.checked||P.revealed){
+        var want=P.mt.has(j),have=P.revealed?want:P.chosen.has(j);
+        if(want!==have||(P.checked&&!P.revealed&&want!==P.chosen.has(j)))cls2='bad';
+        else if(want)cls2='ok';
+      }
+      var on=P.revealed?P.mt.has(j):P.chosen.has(j);
+      h+='<button class="'+cls2+'" data-act="pchip" data-j="'+j+'" aria-pressed="'+on+'">D'+j+'</button>';
+    }
+    h+='</div>';
+  }
+  $('#pbody').innerHTML=h;
+  $('#pscore').textContent=P.tried?('Solved '+P.solved+' of '+P.tried+' attempted'):'';
+}
+function pCheck(){
+  var fb=$('#pfb'),good=false;
+  if(P.mode==='mux'){
+    var sol=pSolution(),n=0;
+    sol.rows.forEach(function(r,s){if(CODES[P.ans[s]]===r.v)n++;});
+    good=n===4;
+    fb.className='msg '+(good?'ok':'warn');
+    fb.textContent=good?'Correct. All four inputs match. Each pair of minterms decides its input.':n+' of 4 inputs are right. For each wrong input, compare its two minterm values: (0,0) gives 0, (1,1) gives 1, (0,1) gives C, (1,0) gives C′.';
+  }else{
+    var missing=[],extra=[];
+    for(var j=0;j<8;j++){if(P.mt.has(j)&&!P.chosen.has(j))missing.push('D'+j);if(!P.mt.has(j)&&P.chosen.has(j))extra.push('D'+j);}
+    good=!missing.length&&!extra.length;
+    fb.className='msg '+(good?'ok':'warn');
+    fb.textContent=good?'Correct. The OR gate collects exactly the minterms of F.':(missing.length?'Missing: '+missing.join(', ')+'. ':'')+(extra.length?'Should not be connected: '+extra.join(', ')+'.':'');
+  }
+  P.checked=true;
+  if(!P.counted){P.counted=true;P.tried++;if(good)P.solved++;}
+  renderPractice();
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click',function(e){
+  var t=e.target.closest('[data-act]');if(!t)return;
+  var a=t.dataset.act;
+  if(a==='n'){
+    var nv=parseInt(t.dataset.n,10);if(nv===S.n)return;
+    var keep=new Set(),dropped=false,max=(1<<nv)-1;
+    S.mt.forEach(function(m){if(m<=max)keep.add(m);else dropped=true;});
+    S.n=nv;S.mt=keep;S.dv=nv-1;S.probe=0;S.fmode='none';syncText();
+    if(dropped)showMsg('warn','Minterms above '+max+' were removed for '+nv+' variables. '+esc(fname())+' = '+esc(sigma(S.mt))+'.');else summaryMsg();
+    renderAll();
+  }else if(a==='apply'){applyText();}
+  else if(a==='preset'){var p=PRESETS[parseInt(t.dataset.i,10)];S.n=p.n;S.dv=p.n-1;S.fmode='none';S.probe=0;setMt(new Set(p.m));if(!p.m.length)showMsg('warn','No minterms, so F = 0 for every input.');}
+  else if(a==='toggle'){e.stopPropagation();var m=parseInt(t.dataset.m,10),s=new Set(S.mt);if(s.has(m))s.delete(m);else s.add(m);S.probe=m;setMt(s);}
+  else if(a==='row'){S.probe=parseInt(t.dataset.m,10);renderAll();}
+  else if(a==='flip'){S.probe^=1<<(S.n-1-parseInt(t.dataset.i,10));renderAll();}
+  else if(a==='impl'){S.impl=t.dataset.id;renderAll();}
+  else if(a==='dv'){S.dv=parseInt(t.dataset.i,10);renderAll();}
+  else if(a==='fmode'){S.fmode=t.dataset.v;renderAll();}
+  else if(a==='runtests'){renderTests();}
+  else if(a==='pmode'){P.mode=t.dataset.m;P.checked=false;P.revealed=false;$('#pfb').className='msg';$('#pfb').textContent='';renderPractice();}
+  else if(a==='pcycle'){var i=parseInt(t.dataset.s,10);P.ans[i]=(P.ans[i]+1)%4;P.checked=false;P.revealed=false;$('#pfb').className='msg';$('#pfb').textContent='';renderPractice();}
+  else if(a==='pchip'){var j=parseInt(t.dataset.j,10);if(P.chosen.has(j))P.chosen.delete(j);else P.chosen.add(j);P.checked=false;P.revealed=false;$('#pfb').className='msg';$('#pfb').textContent='';renderPractice();}
+  else if(a==='pcheck'){pCheck();}
+  else if(a==='preveal'){P.revealed=true;P.checked=false;if(!P.counted){P.counted=true;P.tried++;}$('#pfb').className='msg warn';$('#pfb').textContent='Answer shown. Try a new problem to keep practicing.';renderPractice();}
+  else if(a==='pnew'){pNew();}
+});
+$('#mt').addEventListener('input',function(){applyText(true);});
+$('#mt').addEventListener('keydown',function(e){if(e.key==='Enter')applyText();});
+$('#fline').addEventListener('change',function(){S.fl=parseInt(this.value,10);renderAll();});
+
+
+/* ---------- router + hero ---------- */
+var REDUCE=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var VIEWS=['home','learn','signin','assess','results'];
+var A={phase:'ready',user:ls('mdl_user',null),qs:[],ans:[],touched:[],i:0,startAt:0,endAt:0,timer:null,confirming:false,result:null};
+var A_MIN=10;
+function go(h){if(location.hash===h)route();else location.hash=h;}
+function route(){
+  var h=(location.hash||'#/').replace(/^#\/?/,'').split('?')[0]||'home';
+  if(VIEWS.indexOf(h)<0)h='home';
+  if(h==='assess'&&!A.user){go('#/signin');return;}
+  if(h==='assess'&&A.phase==='result'&&A.result){go('#/results');return;}
+  if(h==='results'&&!A.result){go(A.user?'#/assess':'#/signin');return;}
+  if(h==='assess'&&A.phase!=='quiz')A.phase='ready';
+  VIEWS.forEach(function(v){$('#view-'+v).hidden=v!==h;});
+  var active=h==='results'?'assess':h;
+  document.querySelectorAll('[data-route]').forEach(function(a){if(a.dataset.route===active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
+  $('#navAuth').textContent=A.user?A.user.name:'Sign in';
+  $('#homeAssessTxt').textContent=A.user?'Continue to assessment':'Sign in to begin';$('#homeAssess').setAttribute('href',A.user?'#/assess':'#/signin');
+  var w=$('#welcome');w.hidden=!A.user;
+  if(A.user){var fn=A.user.name.split(/\s+/)[0];fn=fn.charAt(0).toUpperCase()+fn.slice(1);w.innerHTML='<p>Welcome back, <b>'+esc(fn)+'</b> \u2014 ready when you are.</p><button class="switch" data-act="a-signout">Not you? Switch user</button>';}else w.innerHTML='';
+  var names={home:'Function Realization',learn:'Learn',signin:'Sign in',assess:'Assessment',results:'Assessment evaluation'};
+  document.title=names[h]+' · MUX-DEC LAB';
+  window.scrollTo(0,0);
+  if(h==='signin')renderSignin();
+  if(h==='assess')renderAssess();
+  if(h==='results')renderResults();
+}
+var GRAY=[0,1,3,2,6,7,5,4,12,13,15,14,10,11,9,8],heroI=5,heroMt=new Set([0,2,5,7,8,10,13,15]);
+function heroDraw(){
+  var m=GRAY[heroI],c=buildMux(4,heroMt,3),r=evalC(c,m,null),bits=range(4).map(function(i){return bit(m,i,4)}).join('');
+  $('#heroSvg').innerHTML=svgMux(c,m,null);
+  $('#heroState').textContent='ABCD = '+bits+' → I'+r.sel+' = '+lab(c.inputs[r.sel],3)+' → F = '+r.out;
+}
+/* ---------- assessment ---------- */
+function ls(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function rnd(n){return Math.floor(Math.random()*n)}
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=rnd(i+1),t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function randSet(n,lo,hi){var N=1<<n,size=lo+rnd(hi-lo+1),s=new Set();while(s.size<size)s.add(rnd(N));return s;}
+function mcq(q,correct,distract,why){var opts=shuffle([correct].concat(distract));return {t:'mcq',topic:'Concepts',q:q,opts:opts,ans:opts.indexOf(correct),why:why};}
+function genQs(){
+  var qs=[],i;
+  for(i=0;i<3;i++){var mt=randSet(3,2,6);qs.push({t:'mux',topic:'MUX realization',mt:mt,sol:buildMux(3,mt,2).inputs});}
+  for(i=0;i<2;i++)qs.push({t:'dec',topic:'Decoder realization',low:i===1,mt:randSet(3,2,5)});
+  var pool=[
+    function(){var n=3+rnd(2),c=(1<<(n-1))+':1';return mcq('You realize a '+n+'-variable function with a MUX, using one variable as the data input. What is the smallest MUX you need?',c,['2:1','4:1','8:1','16:1'].filter(function(x){return x!==c}),'One variable is the data input, so the other '+(n-1)+' variables drive the selects. That needs 2^'+(n-1)+' = '+(1<<(n-1))+' data inputs.');},
+    function(){var k=[4,8,16,32][rnd(4)],s=Math.log2(k),ds=[2,3,4,5,6].filter(function(x){return x!==s}).slice(0,3);return mcq('How many select lines does a '+k+':1 MUX have?',String(s),ds.map(String),'A MUX with 2^s data inputs has s select lines. Here '+k+' = 2^'+s+', so s = '+s+'.');},
+    function(){var s=rnd(4),f0=rnd(2),f1=rnd(2),c=f0===f1?String(f0):(f1?'C':'C′');return mcq('A 4:1 MUX has selects A and B, and C is the data variable. For AB = '+(s>>1)+(s&1)+', F is '+f0+' when C = 0 and '+f1+' when C = 1. What should be connected to I'+s+'?',c,['0','1','C','C′'].filter(function(x){return x!==c}),'Rule for a minterm pair (C = 0, C = 1): (0,0) gives 0, (1,1) gives 1, (0,1) gives C, (1,0) gives C′. Here the pair is ('+f0+','+f1+').');},
+    function(){var mt=randSet(3,2,6),k=mt.size,ds=[k-1,k+1,k+2,k-2,8].filter(function(x){return x>0&&x!==k}).slice(0,3);return mcq('A 3:8 decoder realizes '+sigma(mt)+' with an OR gate. How many inputs does the OR gate need?',String(k),ds.map(String),'The OR gate takes one input per minterm of F. F has '+k+' minterms.');},
+    function(){var mt=randSet(3,2,5);return mcq('A 3:8 decoder has active-low outputs Y0 to Y7. Which single gate combines the outputs for '+sigma(mt)+' into F?','NAND',['AND','OR','NOR'],'An active-low output is 0 when selected. NAND gives 1 when any input is 0, so NAND of the chosen Y lines equals the OR of the minterms.');},
+    function(){var m=rnd(8);return mcq('A 3:8 active-high decoder receives ABC = '+('00'+m.toString(2)).slice(-3)+'. Which statement is true?','Only D'+m+' is 1',['Only D'+m+' is 0','Only D'+(7-m)+' is 1','All outputs are 0'],'A decoder raises only the output whose index equals the input value. ABC = '+('00'+m.toString(2)).slice(-3)+' is '+m+', so only D'+m+' is 1.');}
+  ];
+  shuffle(pool).slice(0,5).forEach(function(f){qs.push(f());});
+  return qs;
+}
+function startQuiz(){
+  A.qs=genQs();
+  A.ans=A.qs.map(function(q){return q.t==='mux'?[0,0,0,0]:q.t==='dec'?[false,false,false,false,false,false,false,false]:null;});
+  A.touched=A.qs.map(function(){return false});
+  A.i=0;A.confirming=false;A.result=null;A.startAt=Date.now();A.endAt=A.startAt+A_MIN*60000;A.phase='quiz';
+  if(A.timer)clearInterval(A.timer);
+  A.timer=setInterval(tick,1000);
+  renderAssess();
+}
+function fmt(sec){var m=Math.floor(sec/60),s=sec%60;return (m<10?'0':'')+m+':'+(s<10?'0':'')+s;}
+function tick(){
+  if(A.phase!=='quiz')return;
+  var left=Math.max(0,Math.round((A.endAt-Date.now())/1000)),t=$('#atimer');
+  if(t){t.textContent=fmt(left);t.className='timer mono'+(left<=60?' low':'');t.setAttribute('aria-label','Time left '+fmt(left)+(left<=60?', last minute':''));}
+  if(left<=0)finish(true);
+}
+function isCorrect(q,a){
+  if(q.t==='mux')return q.sol.every(function(v,s){return CODES[a[s]]===v});
+  if(q.t==='dec')return range(8).every(function(j){return a[j]===q.mt.has(j)});
+  return a===q.ans;
+}
+function finish(timeup){
+  if(A.timer){clearInterval(A.timer);A.timer=null;}
+  var score=0,topics={},rows=A.qs.map(function(q,i){
+    var ok=isCorrect(q,A.ans[i]);if(ok)score++;
+    var t=topics[q.topic]||(topics[q.topic]={ok:0,total:0});t.total++;if(ok)t.ok++;
+    return {q:q,i:i,ok:ok};});
+  var secs=Math.min(A_MIN*60,Math.round((Date.now()-A.startAt)/1000));
+  var hist=ls('mdl_hist',[]),mine=hist.filter(function(x){return x.name===A.user.name}),prev=mine.length?mine[mine.length-1]:null;
+  hist.push({name:A.user.name,score:score,total:A.qs.length,secs:secs,date:new Date().toLocaleDateString()});
+  lsSet('mdl_hist',hist.slice(-20));
+  A.result={score:score,total:A.qs.length,secs:secs,timeup:!!timeup,rows:rows,topics:topics,prev:prev};
+  A.phase='result';
+  if(location.hash==='#/assess')go('#/results');
+}
+/* ----- sign in page ----- */
+function histHtml(){
+  var u=A.user,hist=ls('mdl_hist',[]).filter(function(x){return u&&x.name===u.name}).slice(-5).reverse();
+  if(!hist.length)return '';
+  return '<div class="panel" style="margin-top:16px;max-width:520px"><h3>Your recent attempts</h3><table class="rtable"><thead><tr><th>Date</th><th>Score</th><th>Time</th></tr></thead><tbody>'+
+    hist.map(function(x){return '<tr><td>'+esc(x.date)+'</td><td>'+x.score+' / '+x.total+'</td><td>'+fmt(x.secs)+'</td></tr>'}).join('')+'</tbody></table></div>';
+}
+function renderSignin(){
+  var u=A.user,h;
+  if(u){
+    h='<div class="panel asign"><h3>You are signed in</h3><p><b>'+esc(u.name)+'</b>'+(u.section?' · Section '+esc(u.section):'')+'</p><div class="row"><a class="btn" href="#/assess">Go to the assessment</a><button class="btn ghost" data-act="a-signout">Sign out</button></div></div>';
+  }else{
+    h='<div class="panel asign"><h3>Your details</h3><p class="lbl">Your name and scores are stored in this browser only.</p>'+
+      '<div class="row"><label class="lbl" for="aname" style="min-width:64px">Name</label><input id="aname" type="text" autocomplete="name"></div>'+
+      '<div class="row"><label class="lbl" for="asec" style="min-width:64px">Section</label><input id="asec" type="text"></div>'+
+      '<div id="aerr" class="msg bad" role="alert" style="display:none"></div>'+
+      '<button class="btn" data-act="a-signin" style="margin-top:6px">Sign in</button></div>';
+  }
+  $('#sbody').innerHTML=h+histHtml();
+}
+function doSignin(){
+  var name=($('#aname').value||'').trim(),sec=($('#asec').value||'').trim(),err=$('#aerr');
+  if(!name){err.style.display='block';err.textContent='Enter your name to sign in.';return;}
+  A.user={name:name,section:sec};lsSet('mdl_user',A.user);A.phase='ready';A.result=null;go('#/assess');
+}
+/* ----- assessment page ----- */
+function renderAssess(){
+  $('#abody').innerHTML=A.phase==='quiz'?quizHtml():readyHtml();
+  if(A.phase==='quiz')tick();
+}
+function readyHtml(){
+  var u=A.user;
+  return '<div class="panel" style="max-width:640px"><p class="kicker">Signed in as '+esc(u.name)+(u.section?' · Section '+esc(u.section):'')+'</p><h3>Before you start</h3><ul class="tight">'+
+    '<li>10 questions: 3 MUX fills, 2 decoder wirings and 5 concept questions.</li>'+
+    '<li>10 minutes. The timer starts when you press Start.</li>'+
+    '<li>One point per question, no negative marking. Move freely between questions.</li>'+
+    '<li>Submit any time. Questions you skip score 0, and the test submits itself when time is up.</li></ul>'+
+    '<div class="row"><button class="btn" data-act="a-begin">Start assessment</button><a class="btn ghost" href="#/learn">Revise in the workbench</a></div></div>'+histHtml();
+}
+function quizHtml(){
+  var i=A.i,q=A.qs[i],a=A.ans[i];
+  var h='<div class="panel"><div class="qtop"><span class="mono" style="font-weight:600">Question '+(i+1)+' of '+A.qs.length+'</span><span id="atimer" class="timer mono" role="timer"></span></div>';
+  h+='<div class="qnav">'+A.qs.map(function(_,k){return '<button class="qbtn'+(A.touched[k]?' done':'')+'" data-act="a-go" data-k="'+k+'" aria-label="Question '+(k+1)+(A.touched[k]?', answered':', not answered')+'"'+(k===i?' aria-current="step"':'')+'>'+(k+1)+'</button>'}).join('')+'</div>';
+  if(q.t==='mux'){
+    h+='<p class="mono" style="font-weight:600;margin:0">F(A, B, C) = '+esc(sigma(q.mt))+'</p><p>Fill the data inputs of a 4:1 MUX. A and B drive the selects (A is the more significant). C is the data variable. Click an input to cycle 0, 1, C, C′.</p><div class="pgrid">';
+    for(var s=0;s<4;s++)h+='<div class="pcard"><div>I'+s+' <small>AB = '+(s>>1)+(s&1)+'</small></div><button class="cyc" data-act="a-cyc" data-s="'+s+'" aria-label="I'+s+' is '+lab(CODES[a[s]],2)+'. Cycle value.">'+lab(CODES[a[s]],2)+'</button></div>';
+    h+='</div>';
+  }else if(q.t==='dec'){
+    var nm=q.low?'Y':'D';
+    h+='<p class="mono" style="font-weight:600;margin:0">F(A, B, C) = '+esc(sigma(q.mt))+'</p><p>Realize F with a 3:8 '+(q.low?'active-low ':'')+'decoder and a'+(q.low?' NAND':'n OR')+' gate. Select every output ('+nm+'0 to '+nm+'7) that must feed the gate.</p><div class="dgrid">';
+    for(var j=0;j<8;j++)h+='<button data-act="a-chip" data-j="'+j+'" aria-pressed="'+a[j]+'">'+nm+j+'</button>';
+    h+='</div>';
+  }else{
+    h+='<p style="font-size:1.05rem;max-width:62ch">'+esc(q.q)+'</p><div class="qopts">'+q.opts.map(function(o,k){return '<button class="opt" data-act="a-opt" data-o="'+k+'" aria-pressed="'+(a===k)+'"><b>'+esc(o)+'</b></button>'}).join('')+'</div>';
+  }
+  var un=A.touched.filter(function(x){return !x}).length;
+  h+='<div class="row" style="margin-top:14px"><button class="btn ghost" data-act="a-prev"'+(i===0?' disabled':'')+'>Previous</button><button class="btn ghost" data-act="a-next"'+(i===A.qs.length-1?' disabled':'')+'>Next</button><button class="btn" data-act="a-submit">'+(A.confirming?'Submit anyway':'Submit assessment')+'</button></div>';
+  if(A.confirming)h+='<div class="msg warn" role="status">'+un+' question'+(un===1?'':'s')+' not answered yet. Submit anyway, or keep working.</div>';
+  return h+'</div>';
+}
+/* ----- evaluation page ----- */
+function userAns(q,a){
+  if(q.t==='mux')return a.map(function(c,s){return 'I'+s+' = '+lab(CODES[c],2)}).join(', ');
+  if(q.t==='dec'){var l=range(8).filter(function(j){return a[j]}).map(function(j){return (q.low?'Y':'D')+j});return l.length?l.join(', '):'none selected';}
+  return a===null?'no answer':q.opts[a];
+}
+function rightAns(q){
+  if(q.t==='mux')return q.sol.map(function(v,s){return 'I'+s+' = '+lab(v,2)}).join(', ');
+  if(q.t==='dec')return Array.from(q.mt).sort(function(x,y){return x-y}).map(function(j){return (q.low?'Y':'D')+j}).join(', ');
+  return q.opts[q.ans];
+}
+function qText(q){return q.t==='mux'?'Fill a 4:1 MUX for '+sigma(q.mt)+' (A, B select; C data).':q.t==='dec'?'Select the decoder outputs for '+sigma(q.mt)+(q.low?' (active-low, NAND).':' (active-high, OR).'):q.q;}
+function whyText(q){
+  if(q.t==='mux')return buildMux(3,q.mt,2).rows.map(function(r){return 'I'+r.s+': m'+r.pair[0]+' = '+r.f0+', m'+r.pair[1]+' = '+r.f1+' → '+lab(r.v,2)}).join(' · ');
+  if(q.t==='dec')return q.low?'Every minterm of F needs its own line into the NAND. Active-low outputs go to 0 when selected, and NAND turns any 0 into a 1.':'Every minterm of F needs its own line into the OR gate. Outputs for other minterms stay unconnected.';
+  return q.why;
+}
+function grade(p){return p>=90?'Excellent':p>=70?'Proficient':p>=50?'Developing':'Needs review';}
+var TIPS={'MUX realization':'Revisit the implementation table in the workbench: for each select value, compare the minterm pair (X = 0, X = 1).','Decoder realization':'Use “Wire the decoder” practice in the workbench: one gate input per minterm, and NAND for active-low outputs.','Concepts':'Read the Notes section on how each realization works, then retry the concept questions.'};
+function resultsHtml(){
+  var r=A.result,pct=Math.round(100*r.score/r.total),avg=Math.round(r.secs/r.total);
+  var delta=r.prev?((r.score-r.prev.score>0?'+':'')+(r.score-r.prev.score)+' points'):'First attempt';
+  var h='<div class="panel"><p class="kicker">'+esc(A.user.name)+(A.user.section?' · Section '+esc(A.user.section):'')+'</p><div class="bigscore">'+r.score+' / '+r.total+'</div>'+
+    '<p class="mono" style="margin:0;font-weight:600">'+pct+'% · '+grade(pct)+'</p>'+
+    '<div class="stats"><div><span class="lbl">Time used</span><b class="mono">'+fmt(r.secs)+'</b></div><div><span class="lbl">Average per question</span><b class="mono">'+avg+' s</b></div><div><span class="lbl">Change vs last attempt</span><b class="mono">'+delta+'</b></div></div>';
+  if(r.timeup)h+='<div class="msg warn">Time ran out, so the test was submitted automatically.</div>';
+  h+='<div class="row"><button class="btn" data-act="a-again">Try a new set</button><a class="btn ghost" href="#/learn">Open the workbench</a><button class="btn ghost" data-act="a-signout">Sign out</button></div></div>';
+  var names=Object.keys(r.topics),weak=null,worst=2;
+  h+='<div class="panel" style="margin-top:16px"><h3>Performance by topic</h3>';
+  names.forEach(function(n){var t=r.topics[n],ratio=t.ok/t.total;if(ratio<worst){worst=ratio;weak=n;}
+    h+='<div class="topic"><span>'+esc(n)+'</span><div class="bar" role="img" aria-label="'+t.ok+' of '+t.total+' correct"><i style="width:'+Math.round(100*ratio)+'%"></i></div><b class="mono">'+t.ok+' / '+t.total+'</b></div>';});
+  h+='</div><div class="panel" style="margin-top:16px"><h3>What to do next</h3><p>'+(worst>=1?'No weak spots this time. Try the 4-variable presets in the workbench for a harder challenge.':'Weakest topic: <b>'+esc(weak)+'</b>. '+esc(TIPS[weak]))+'</p></div>';
+  h+='<div class="panel" style="margin-top:16px"><h3>Question review</h3>';
+  r.rows.forEach(function(x){
+    h+='<div class="rq '+(x.ok?'ok':'bad')+'"><div class="rh"><span>Q'+(x.i+1)+' · '+esc(x.q.topic)+'</span><span class="'+(x.ok?'res-ok':'res-bad')+'">'+(x.ok?'✓ correct':'✗ wrong')+'</span></div>'+
+      '<p>'+esc(qText(x.q))+'</p><p><b>Your answer:</b> '+esc(userAns(x.q,A.ans[x.i]))+'</p>'+(x.ok?'':'<p><b>Correct answer:</b> '+esc(rightAns(x.q))+'</p>')+'<p class="why"><b>Why:</b> '+esc(whyText(x.q))+'</p></div>';});
+  return h+'</div>'+histHtml();
+}
+function renderResults(){$('#rbody').innerHTML=resultsHtml();}
+/* ----- events ----- */
+document.addEventListener('click',function(e){
+  var sc=e.target.closest('[data-scroll]');
+  if(sc){var el=document.getElementById(sc.dataset.scroll);if(el)el.scrollIntoView({behavior:REDUCE?'auto':'smooth',block:'start'});return;}
+  var t=e.target.closest('[data-act^="a-"]');if(!t)return;
+  var a=t.dataset.act,i=A.i;
+  if(a==='a-signin'){doSignin();return;}
+  if(a==='a-begin'){startQuiz();return;}
+  if(a==='a-again'){startQuiz();go('#/assess');return;}
+  if(a==='a-signout'){if(A.timer){clearInterval(A.timer);A.timer=null;}A.user=null;A.result=null;A.phase='ready';try{localStorage.removeItem('mdl_user')}catch(x){}go('#/signin');return;}
+  if(A.phase!=='quiz')return;
+  if(a==='a-go'){A.i=parseInt(t.dataset.k,10);A.confirming=false;}
+  else if(a==='a-prev'){A.i=Math.max(0,i-1);A.confirming=false;}
+  else if(a==='a-next'){A.i=Math.min(A.qs.length-1,i+1);A.confirming=false;}
+  else if(a==='a-cyc'){var s=parseInt(t.dataset.s,10);A.ans[i][s]=(A.ans[i][s]+1)%4;A.touched[i]=true;A.confirming=false;}
+  else if(a==='a-chip'){var j=parseInt(t.dataset.j,10);A.ans[i][j]=!A.ans[i][j];A.touched[i]=true;A.confirming=false;}
+  else if(a==='a-opt'){A.ans[i]=parseInt(t.dataset.o,10);A.touched[i]=true;A.confirming=false;}
+  else if(a==='a-submit'){
+    var un=A.touched.filter(function(x){return !x}).length;
+    if(un>0&&!A.confirming){A.confirming=true;}else{finish(false);return;}
+  }
+  renderAssess();
+});
+document.addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target&&(e.target.id==='aname'||e.target.id==='asec'))doSignin();});
+window.addEventListener('hashchange',route);
+
+/* ---------- init ---------- */
+renderPresets();syncText();summaryMsg();renderAll();pNew();renderTests();
+/* ---------- look and feel ---------- */
+(function(){
+  var root=document.documentElement,btn=$('#themeBtn');
+  function sysDark(){return window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;}
+  function cur(){return root.getAttribute('data-theme')||(sysDark()?'dark':'light');}
+  function paint(){btn.setAttribute('aria-checked',String(cur()==='dark'));}
+  var saved=ls('mdl_theme',null);if(saved==='dark'||saved==='light')root.setAttribute('data-theme',saved);
+  paint();
+  btn.addEventListener('click',function(){var n=cur()==='dark'?'light':'dark';root.setAttribute('data-theme',n);lsSet('mdl_theme',n);paint();});
+  var box=$('#bits'),h='';
+  for(var i=0;i<38;i++){h+='<span style="left:'+(Math.random()*98).toFixed(1)+'%;top:'+(Math.random()*98).toFixed(1)+'%;font-size:'+(12+Math.random()*10).toFixed(0)+'px;animation-delay:-'+(Math.random()*8).toFixed(1)+'s;animation-duration:'+(7+Math.random()*7).toFixed(1)+'s">'+(Math.random()<0.5?'0':'1')+'</span>';}
+  box.innerHTML=h;
+  var QUIPS=['A MUX is a railway switch that never loses a train.','Every decoder is a very picky spotlight.','Shannon expanded, and the multiplexer said thank you.','Select lines: the quiet bosses of every circuit.','A minterm walks into a decoder. Exactly one output lights up.','Constant inputs are just circuits that decided early.'];
+  var qi=Math.floor(Math.random()*QUIPS.length);
+  function showQuip(){$('#quip').textContent=QUIPS[qi%QUIPS.length];qi++;}
+  function byte(){var b='';for(var k=0;k<8;k++)b+=Math.random()<0.5?'0':'1';return b;}
+  setTimeout(showQuip,700);$('#fbyte').textContent=byte();
+  if(!REDUCE){setInterval(function(){if(!$('#view-home').hidden)showQuip();},7000);setInterval(function(){$('#fbyte').textContent=byte();},2500);}
+})();
+heroDraw();
+if(!REDUCE)setInterval(function(){if($('#view-home').hidden)return;heroI=(heroI+1)%16;heroDraw();},1100);
+route();
+})();
+</script>
+</body>
+</html>
